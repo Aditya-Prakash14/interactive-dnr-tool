@@ -3,17 +3,15 @@ import { useRouter } from 'vue-router';
 import 'jsoneditor/dist/jsoneditor.css';
 import JSONRulesEditor from '@/components/JSONRulesEditor.vue';
 import { useRulesStore } from '@/stores/rulesStore';
-import { onMounted } from 'vue';
+import { onMounted, computed } from 'vue';
 
 const rulesStore = useRulesStore();
-const parsedRulesList = rulesStore.getParsedRulesListLength;
-
+const parsedRulesList = computed(() => rulesStore.parsedRulesListLength);
 const router = useRouter();
+
 onMounted(() => {
-  if (parsedRulesList === 0) {
-    let result = confirm(
-      '0 parsed rules found. Proceed to upload ruleset file(s)?'
-    );
+  if (parsedRulesList.value === 0) {
+    const result = confirm('0 parsed rules found. Proceed to upload ruleset file(s)?');
     if (result) {
       router.push({ name: 'home' });
     }
@@ -22,41 +20,32 @@ onMounted(() => {
 </script>
 
 <template>
-  <main>
-    <h1>Rules Editor</h1>
-    <div class="wrapper">
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/requests">Requests Playground</RouterLink>
-      </nav>
+  <main class="rules-editor-view">
+    <h1 class="page-title">Rules Editor</h1>
+    <nav class="main-nav">
+      <RouterLink to="/" class="nav-link">Home</RouterLink>
+      <RouterLink to="/requests" class="nav-link">Requests Playground</RouterLink>
+    </nav>
+    <div class="editor-container">
+      <JSONRulesEditor />
     </div>
-    <JSONRulesEditor />
   </main>
 </template>
 
 <style scoped>
-nav {
-  width: 100%;
-  font-size: 12px;
+.rules-editor-view {
+  display: flex;
+  flex-direction: column;
+  padding: 3rem;
+  gap: 3rem;
+  min-height: 100vh;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--color-heading);
   text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
 }
 </style>

@@ -10,7 +10,6 @@ const rulesStore = useRulesStore();
 
 let manifestFileName = ref('');
 let manifestFile = null;
-
 let rulesetFileNames = ref('');
 
 function parseManifestFile(manifestFile) {
@@ -18,32 +17,26 @@ function parseManifestFile(manifestFile) {
   reader.onload = function (e) {
     try {
       const manifestObject = JSON.parse(e.target.result);
-      let manifestValidationResult =
-        manifestStore.isValidManifest(manifestObject); // true if no errors, error object otherwise
+      const manifestValidationResult = manifestStore.isValidManifest(manifestObject);
       if (manifestValidationResult === true) {
         manifestFileName.value = manifestFile.name;
         manifestStore.clearRulesetFilePaths();
         manifestStore.setRulesetFilePaths(manifestObject);
       } else {
         let output = 'Issues found:\n';
-
-        for (let i = 0; i < manifestValidationResult['type'].length; i++) {
-          if (manifestValidationResult['type'][i] === 'missingFields') {
-            let missingFields =
-              manifestValidationResult['missingFields'].join(', ');
-            output += `- Missing fields: ${missingFields}\n`;
-          }
-          if (manifestValidationResult['type'][i] === 'invalidValueTypes') {
-            let invalidValueTypes =
-              manifestValidationResult['invalidValueTypes'].join(', ');
-            output += `- Invalid value types for: ${invalidValueTypes}\n`;
-          }
+        if (manifestValidationResult.type.includes('missingFields')) {
+          const missingFields = manifestValidationResult.missingFields.join(', ');
+          output += `- Missing fields: ${missingFields}\n`;
+        }
+        if (manifestValidationResult.type.includes('invalidValueTypes')) {
+          const invalidValueTypes = manifestValidationResult.invalidValueTypes.join(', ');
+          output += `- Invalid value types for: ${invalidValueTypes}\n`;
         }
         window.alert(output);
       }
     } catch (error) {
-      console.log(error);
-      window.alert('Error parsing manifest JSON');
+      console.error('Error parsing manifest JSON:', error);
+      window.alert('Error parsing manifest JSON. Please ensure the file is valid.');
     }
   };
   reader.readAsText(manifestFile);
@@ -51,75 +44,37 @@ function parseManifestFile(manifestFile) {
 
 function manifestInputHandler(ev) {
   ev.preventDefault();
-  let numFiles = 0;
-  let files = [];
+  let files = ev.dataTransfer ? ev.dataTransfer.items : ev.target.files;
 
-  // Check if the file was dropped or selected from the file input
-  if (ev.dataTransfer) {
-    // Dropped file
-    files = ev.dataTransfer.items;
-  } else {
-    // Selected from file input
-    files = ev.target.files;
+  if (files.length === 0) {
+    window.alert('No files were dropped');
+    return;
+  } else if (files.length > 1) {
+    window.alert('Only one file can be dropped at a time');
+    return;
   }
 
-  if (files.length != 0) {
-    numFiles = files.length;
-    if (numFiles === 0) {
-      window.alert('No files were dropped');
-      return;
-    } else if (numFiles > 1) {
-      window.alert('Only one file can be dropped at a time');
-      return;
-    }
-    for (let i = 0; i < numFiles; i++) {
-      if (files[i].kind === 'file') {
-        manifestFile = files[i].getAsFile();
-      } else {
-        manifestFile = files[i];
-      }
-    }
-  } else {
-    files = ev.dataTransfer.files;
-    numFiles = files.length;
-    if (numFiles === 0) {
-      window.alert('No files were dropped');
-      return;
-    } else if (numFiles > 1) {
-      window.alert('Only one file can be dropped at a time');
-      return;
-    }
-    for (let i = 0; i < numFiles; i++) {
-      manifestFile = files[i];
-    }
-  }
+  manifestFile = files[0].getAsFile ? files[0].getAsFile() : files[0];
   parseManifestFile(manifestFile);
-  removeDragData(ev);
 }
 
 function parseRulesetFile(rulesetFile) {
   const reader = new FileReader();
-  const fileName = rulesetFile.name;
   reader.onload = function (e) {
     try {
-      const ruleset = JSON.parse(e.target.result); // Array of rules for the ruleset (one ruleset per file)
-      let rulesetValidationResult = rulesStore.isValidRuleset(ruleset); // true if no errors, error object otherwise
+      const ruleset = JSON.parse(e.target.result);
+      let rulesetValidationResult = rulesStore.isValidRuleset(ruleset);
       if (rulesetValidationResult === true) {
-        rulesStore.setParsedRulesList(ruleset, fileName);
+        rulesStore.setParsedRulesList(ruleset, manifestFileName.value);
       } else {
         let output = 'Issues found:\n';
-
-        for (let i = 0; i < rulesetValidationResult['type'].length; i++) {
-          if (rulesetValidationResult['type'][i] === 'missingFields') {
-            let missingFields =
-              rulesetValidationResult['missingFields'].join(', ');
-            output += `- Missing fields: ${missingFields}\n`;
-          }
-          if (rulesetValidationResult['type'][i] === 'invalidValueTypes') {
-            let invalidValueTypes =
-              rulesetValidationResult['invalidValueTypes'].join(', ');
-            output += `- Invalid value types for: ${invalidValueTypes}\n`;
-          }
+        if (rulesetValidationResult.type.includes('missingFields')) {
+          const missingFields = rulesetValidationResult.missingFields.join(', ');
+          output += `- Missing fields: ${missingFields}\n`;
+        }
+        if (rulesetValidationResult.type.includes('invalidValueTypes')) {
+          const invalidValueTypes = rulesetValidationResult.invalidValueTypes.join(', ');
+          output += `- Invalid value types for: ${invalidValueTypes}\n`;
         }
         window.alert(output);
       }
@@ -133,48 +88,17 @@ function parseRulesetFile(rulesetFile) {
 
 function rulesetFilesInputHandler(ev) {
   ev.preventDefault();
-  let numFiles = 0;
-  let tempRulesetFiles = [];
-  let rulesetFiles = [];
+  let files = ev.dataTransfer ? ev.dataTransfer.items : ev.target.files;
 
-  // Check if the files were dropped or selected from the file input
-  if (ev.dataTransfer) {
-    // Dropped files
-    tempRulesetFiles = ev.dataTransfer.items;
-  } else {
-    // Selected from file input
-    tempRulesetFiles = Array.from(ev.target.files);
+  if (files.length === 0) {
+    window.alert('One or more files expected');
+    return;
   }
 
-  if (tempRulesetFiles.length != 0) {
-    numFiles = tempRulesetFiles.length;
-    if (numFiles < 1) {
-      window.alert('One or more files expected');
-      return;
-    }
-    for (let i = 0; i < numFiles; i++) {
-      if (tempRulesetFiles[i].kind === 'file') {
-        rulesetFiles.push(tempRulesetFiles[i].getAsFile());
-      } else {
-        rulesetFiles.push(tempRulesetFiles[i]);
-      }
-    }
-  } else {
-    tempRulesetFiles = ev.dataTransfer.files;
-    numFiles = tempRulesetFiles.length;
-    if (numFiles === 0) {
-      window.alert('One or more files expected');
-      return;
-    }
-    for (let i = 0; i < numFiles; i++) {
-      rulesetFiles.push(tempRulesetFiles[i]);
-    }
-  }
-  rulesetFileNames.value = rulesetFiles.map((file) => file.name).join(', ');
-  for (let i = 0; i < rulesetFiles.length; i++) {
-    parseRulesetFile(rulesetFiles[i]);
-  }
-  removeDragData(ev);
+  let rulesetFiles = Array.from(files).map(file => file.getAsFile ? file.getAsFile() : file);
+  rulesetFileNames.value = rulesetFiles.map(file => file.name).join(', ');
+
+  rulesetFiles.forEach(file => parseRulesetFile(file));
 }
 
 function dragOverHandler(ev) {
@@ -251,7 +175,7 @@ function removeDragData(ev) {
 
 <style scoped>
 .drop_zone {
-  border: dashed;
+  border: 2px dashed var(--color-border);
   width: 200px;
   height: 100px;
 }

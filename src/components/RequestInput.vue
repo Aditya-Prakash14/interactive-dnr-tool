@@ -12,32 +12,32 @@ const matchedRule = ref(null);
 let matchedRuleString = '';
 
 function submitRequest(ev) {
-  ev.preventDefault();
+ev.preventDefault();
 
-  // Headers validity checking
-  let requestHeaders = {};
-  try {
-    requestHeaders = JSON.parse(headers.value || '{}');
-  } catch (e) {
-    window.alert('Invalid headers');
-    headers.value = '';
-    return;
-  }
+// Headers validity checking
+let requestHeaders = {};
+try {
+requestHeaders = JSON.parse(headers.value || '{}');
+} catch (e) {
+window.alert('Invalid headers');
+headers.value = '';
+return;
+}
 
-  const formObject = {
-    httpMethod: httpMethod.value,
-    url: url.value,
-    headers: requestHeaders,
-    body: body.value
-  };
-  matchedRule.value = rulesStore.requestMatcher(formObject)[0];
-  // When matchedRule.value is undefined, it means no matching rule was found
-  try {
-    matchedRuleString = JSON.stringify(matchedRule.value.rule, null, 2);
-  } catch (e) {
-    window.alert('No matching rule found.');
-  }
-  rulesStore.setMatchedRuleString(matchedRuleString);
+const formObject = {
+httpMethod: httpMethod.value,
+url: url.value,
+headers: requestHeaders,
+body: body.value
+};
+matchedRule.value = rulesStore.requestMatcher(formObject)[0];
+// When matchedRule.value is undefined, it means no matching rule was found
+try {
+matchedRuleString = JSON.stringify(matchedRule.value.rule, null, 2);
+} catch (e) {
+window.alert('No matching rule found.');
+}
+rulesStore.setMatchedRuleString(matchedRuleString);
 }
 </script>
 
@@ -74,7 +74,6 @@ function submitRequest(ev) {
     </form>
   </div>
 </template>
-
 <style scoped>
 form {
   display: flex;
